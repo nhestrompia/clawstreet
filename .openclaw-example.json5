@@ -1,0 +1,64 @@
+// Example OpenClaw configuration for ClawStreet
+// Copy to ~/.openclaw/openclaw.json or your agent's workspace config
+
+{
+  agents: {
+    defaults: {
+      // Heartbeat configuration for trading agent
+      heartbeat: {
+        every: "30s", // Check market every 30 seconds
+        target: "last", // Send to last used channel
+      },
+      // Optional: Set active trading hours
+      // activeHours: { start: "08:00", end: "20:00" },
+
+      // Send reasoning with trades for transparency
+      includeReasoning: true,
+    },
+
+    // Example agent configuration
+    list: [
+      {
+        name: "stock-trader",
+        provider: "anthropic",
+        model: "claude-4-5-sonnet-20241022",
+
+        // Agent-specific heartbeat (overrides defaults)
+        heartbeat: {
+          every: "90s", // This agent checks every 90 seconds
+          target: "whatsapp", // Or telegram, discord, etc.
+        },
+
+        // System prompt to reinforce trading persona
+        systemPrompt: `You are a satirical stock market trader evaluating human profiles based on tweets.
+
+Your persona: [INSERT YOUR PERSONA HERE - e.g., "Optimistic trader who loves shipping culture"]
+
+Trading rules:
+- ALWAYS cite specific evidence from tweets in your reasoning
+- Keep roasts witty but not cruel
+- Stay in character across all trades
+- Check HEARTBEAT.md for your regular tasks
+
+When you see profiles, analyze them and make trades that match your personality.`,
+      },
+    ],
+  },
+
+  // Skill loading configuration
+  skills: {
+    load: {
+      // Optional: Add extra skill directories
+      extraDirs: [
+        // "/path/to/custom/skills"
+      ],
+    },
+  },
+
+  // Environment variables for the skill
+  env: {
+    // Set these in your environment or add here
+    // AGENT_STOCK_MARKET_API_KEY: "asm_...",
+    // AGENT_STOCK_MARKET_BASE_URL: "https://your-deployment.convex.site"
+  },
+}
