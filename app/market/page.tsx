@@ -17,9 +17,9 @@ import { HugeiconsIcon } from "@hugeicons/react";
 import { useQuery } from "convex/react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { useState } from "react";
+import { Suspense, useState } from "react";
 
-export default function MarketPage() {
+function MarketContent() {
   const searchParams = useSearchParams();
   const newProfileId = searchParams.get("new");
 
@@ -110,5 +110,13 @@ export default function MarketPage() {
         </div>
       </footer>
     </div>
+  );
+}
+
+export default function MarketPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <MarketContent />
+    </Suspense>
   );
 }
