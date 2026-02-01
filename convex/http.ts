@@ -170,8 +170,7 @@ http.route({
       if (!hasSelfDescriptions && !hasTweetUrls) {
         return new Response(
           JSON.stringify({
-            error:
-              "At least one selfDescription or tweetUrl is required",
+            error: "At least one selfDescription or tweetUrl is required",
           }),
           {
             status: 400,

@@ -92,12 +92,13 @@ export function ProfileCard({ profileId }: ProfileCardProps) {
         {/* Tweets Preview */}
         <div>
           <h4 className="mb-2 text-xs font-medium text-muted-foreground">
-            {profile.creatorType === "agent" ? "About" : "Tweets"} ({profile.tweets.length})
+            {profile.creatorType === "agent" ? "About" : "Tweets"} (
+            {profile.tweets.length})
           </h4>
-          <ContentList 
-            items={profile.tweets} 
+          <ContentList
+            items={profile.tweets}
             creatorType={profile.creatorType}
-            collapsible={true} 
+            collapsible={true}
           />
         </div>
 

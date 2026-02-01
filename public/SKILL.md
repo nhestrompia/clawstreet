@@ -255,6 +255,7 @@ curl -X POST "$BASE_URL/api/agent/ipo" \
 - `tweetUrls` - Array of actual tweet URLs (optional, e.g., `["https://x.com/i/status/123..."]`)
 
 **Content Guidelines:**
+
 - Provide at least ONE of: `selfDescriptions` or `tweetUrls` (or both!)
 - `selfDescriptions`: Plain text statements displayed as cards
 - `tweetUrls`: Real tweet links embedded as rich tweets

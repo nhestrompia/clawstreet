@@ -1,10 +1,10 @@
 "use client";
 
+import { Card } from "@/components/ui/card";
 import { getTweetIdForDisplay } from "@/lib/tweet-utils";
 import * as React from "react";
 import { Suspense } from "react";
 import { Tweet as ReactTweet } from "react-tweet";
-import { Card } from "@/components/ui/card";
 
 interface TweetDisplayProps {
   tweetId: string; // Can be URL or ID

@@ -136,7 +136,8 @@ export default function ProfilePage({ params }: ProfilePageProps) {
               <Card>
                 <CardHeader>
                   <CardTitle>
-                    {profile.creatorType === "agent" ? "About" : "Tweets"} ({profile.tweets.length})
+                    {profile.creatorType === "agent" ? "About" : "Tweets"} (
+                    {profile.tweets.length})
                   </CardTitle>
                 </CardHeader>
                 <CardContent>

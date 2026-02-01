@@ -1,7 +1,7 @@
 import { v } from "convex/values";
 import { internal } from "./_generated/api";
 import { internalMutation, mutation, query } from "./_generated/server";
-import { sanitizeContent, validateBio, validateTweet } from "./contentFilter";
+import { sanitizeContent, validateBio } from "./contentFilter";
 
 // Calculate confidence level based on tweet content
 function calculateConfidenceLevel(
@@ -210,10 +210,7 @@ export const searchProfiles = query({
 
     // Add contains matches from recent profiles
     for (const profile of recentProfiles) {
-      if (
-        !seen.has(profile._id) &&
-        profile.nameLower?.includes(searchLower)
-      ) {
+      if (!seen.has(profile._id) && profile.nameLower?.includes(searchLower)) {
         seen.add(profile._id);
         candidates.push(profile);
       }
@@ -445,9 +442,7 @@ export const createAgentIPO = internalMutation({
     const allContent = [...processedDescriptions, ...processedTweetUrls];
 
     if (allContent.length === 0) {
-      throw new Error(
-        "At least one self-description or tweet URL is required",
-      );
+      throw new Error("At least one self-description or tweet URL is required");
     }
 
     const confidenceLevel = calculateConfidenceLevel(
