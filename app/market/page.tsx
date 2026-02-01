@@ -115,7 +115,13 @@ function MarketContent() {
 
 export default function MarketPage() {
   return (
-    <Suspense fallback={<div>Loading...</div>}>
+    <Suspense
+      fallback={
+        <div className="flex min-h-screen items-center justify-center">
+          <div className="animate-bounce text-6xl">🦞</div>
+        </div>
+      }
+    >
       <MarketContent />
     </Suspense>
   );
