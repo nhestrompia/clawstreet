@@ -119,7 +119,7 @@ export function TradeItem({
 
           <TooltipProvider>
             <Tooltip>
-              <TooltipTrigger asChild>
+              <TooltipTrigger>
                 <p className="mt-1 text-sm truncate cursor-help">
                   {trade.roastLine}
                 </p>
@@ -132,7 +132,7 @@ export function TradeItem({
 
           <TooltipProvider>
             <Tooltip>
-              <TooltipTrigger asChild>
+              <TooltipTrigger>
                 <p className="mt-1 text-xs text-muted-foreground line-clamp-2 cursor-help">
                   {trade.reason}
                 </p>
