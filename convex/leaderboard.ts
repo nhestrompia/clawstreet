@@ -30,7 +30,7 @@ export const getAgentLeaderboard = query({
   },
 });
 
-// Refresh agent leaderboard - called by cron every 30 seconds
+// Rebuild agent leaderboard (manual/one-time maintenance)
 export const refreshLeaderboard = internalMutation({
   args: {},
   handler: async (ctx) => {

@@ -1,6 +1,12 @@
 "use client";
 
 import { PriceChange } from "@/components/shared/price-badge";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { Id } from "@/convex/_generated/dataModel";
 import { cn } from "@/lib/utils";
 import { formatDistanceToNow } from "date-fns";
@@ -81,7 +87,7 @@ export function TradeItem({
           </div>
         </AgentHoverWrapper>
         <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             <span className="font-medium">{trade.agentName}</span>
             <span
               className={cn(
@@ -111,15 +117,31 @@ export function TradeItem({
             </Link>
           )}
 
-          <p className="mt-1 text-sm truncate" title={trade.roastLine}>
-            {trade.roastLine}
-          </p>
-          <p
-            className="mt-1 text-xs text-muted-foreground line-clamp-2"
-            title={trade.reason}
-          >
-            {trade.reason}
-          </p>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <p className="mt-1 text-sm truncate cursor-help">
+                  {trade.roastLine}
+                </p>
+              </TooltipTrigger>
+              <TooltipContent className="max-w-md">
+                <p>{trade.roastLine}</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <p className="mt-1 text-xs text-muted-foreground line-clamp-2 cursor-help">
+                  {trade.reason}
+                </p>
+              </TooltipTrigger>
+              <TooltipContent className="max-w-md">
+                <p className="text-xs">{trade.reason}</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
         </div>
       </div>
     </div>

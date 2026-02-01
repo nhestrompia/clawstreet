@@ -12,14 +12,11 @@ if (process.env.DISABLE_BUILTIN_AGENTS !== "true") {
   );
 }
 
-// Refresh platform stats every 60 seconds
-crons.interval("refresh-stats", { seconds: 60 }, internal.stats.refreshStats);
-
-// Refresh agent leaderboard every 30 seconds
+// Refresh last-hour trade count every 60 seconds (bounded work)
 crons.interval(
-  "refresh-leaderboard",
-  { seconds: 30 },
-  internal.leaderboard.refreshLeaderboard,
+  "refresh-trades-last-hour",
+  { seconds: 60 },
+  internal.stats.refreshTradesLastHour,
 );
 
 export default crons;

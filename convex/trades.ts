@@ -109,8 +109,10 @@ export const recordTrade = internalMutation({
       throw new Error("Profile or agent not found");
     }
 
+    const now = Date.now();
     const currentPrice = profile.currentPrice;
     const totalShares = profile.totalShares || 100000;
+    let updatedBalance = agent.balance;
 
     // Calculate shares to trade based on size (0.1 to 1.0) and agent's balance
     const maxAffordableShares = Math.floor(agent.balance / currentPrice);
@@ -140,7 +142,7 @@ export const recordTrade = internalMutation({
       roastLine: args.roastLine,
       priceAtTrade: currentPrice,
       priceChange,
-      createdAt: Date.now(),
+      createdAt: now,
     });
 
     // Update profile price and trade count
@@ -153,7 +155,7 @@ export const recordTrade = internalMutation({
     await ctx.db.insert("priceHistory", {
       profileId: args.profileId,
       price: newPrice,
-      timestamp: Date.now(),
+      timestamp: now,
     });
 
     // Update agent holdings
@@ -178,9 +180,10 @@ export const recordTrade = internalMutation({
       }
 
       // Deduct from agent balance
+      updatedBalance = agent.balance - sharesToTrade * currentPrice;
       await ctx.db.patch(args.agentId, {
-        balance: agent.balance - sharesToTrade * currentPrice,
-        lastActiveAt: Date.now(),
+        balance: updatedBalance,
+        lastActiveAt: now,
       });
     } else if (args.action === "SELL") {
       const existingHolding = await ctx.db
@@ -206,11 +209,113 @@ export const recordTrade = internalMutation({
         }
 
         // Add to agent balance
+        updatedBalance = agent.balance + sharesToSell * currentPrice;
         await ctx.db.patch(args.agentId, {
-          balance: agent.balance + sharesToSell * currentPrice,
-          lastActiveAt: Date.now(),
+          balance: updatedBalance,
+          lastActiveAt: now,
         });
       }
+    }
+
+    // Update leaderboard values for all holders of this profile based on price change
+    const priceDelta = newPrice - currentPrice;
+    if (priceDelta !== 0) {
+      const profileHoldings = await ctx.db
+        .query("agentHoldings")
+        .withIndex("by_profile", (q) => q.eq("profileId", args.profileId))
+        .collect();
+
+      for (const holding of profileHoldings) {
+        const entry = await ctx.db
+          .query("agentLeaderboard")
+          .withIndex("by_agent", (q) => q.eq("agentId", holding.agentId))
+          .first();
+
+        if (entry) {
+          await ctx.db.patch(entry._id, {
+            portfolioValue: entry.portfolioValue + holding.shares * priceDelta,
+            lastUpdated: now,
+          });
+          continue;
+        }
+
+        const holderAgent = await ctx.db.get(holding.agentId);
+        if (!holderAgent) {
+          continue;
+        }
+
+        const holderHoldings = await ctx.db
+          .query("agentHoldings")
+          .withIndex("by_agent", (q) => q.eq("agentId", holding.agentId))
+          .collect();
+
+        let portfolioValue = holderAgent.balance;
+        for (const holderHolding of holderHoldings) {
+          const holdingProfile =
+            holderHolding.profileId === args.profileId
+              ? { currentPrice: newPrice }
+              : await ctx.db.get(holderHolding.profileId);
+          if (holdingProfile) {
+            portfolioValue += holderHolding.shares * holdingProfile.currentPrice;
+          }
+        }
+
+        await ctx.db.insert("agentLeaderboard", {
+          agentId: holderAgent._id,
+          portfolioValue,
+          holdingsCount: holderHoldings.length,
+          agentName: holderAgent.name,
+          avatarEmoji: holderAgent.avatarEmoji,
+          balance: holderAgent.balance,
+          isBuiltIn: holderAgent.isBuiltIn,
+          lastUpdated: now,
+        });
+      }
+    }
+
+    // Recompute trading agent leaderboard entry to keep balance/holdings exact
+    const agentHoldings = await ctx.db
+      .query("agentHoldings")
+      .withIndex("by_agent", (q) => q.eq("agentId", args.agentId))
+      .collect();
+
+    let portfolioValue = updatedBalance;
+    for (const holding of agentHoldings) {
+      const holdingProfile =
+        holding.profileId === args.profileId
+          ? { currentPrice: newPrice }
+          : await ctx.db.get(holding.profileId);
+      if (holdingProfile) {
+        portfolioValue += holding.shares * holdingProfile.currentPrice;
+      }
+    }
+
+    const agentEntry = await ctx.db
+      .query("agentLeaderboard")
+      .withIndex("by_agent", (q) => q.eq("agentId", args.agentId))
+      .first();
+
+    if (agentEntry) {
+      await ctx.db.patch(agentEntry._id, {
+        portfolioValue,
+        holdingsCount: agentHoldings.length,
+        agentName: agent.name,
+        avatarEmoji: agent.avatarEmoji,
+        balance: updatedBalance,
+        isBuiltIn: agent.isBuiltIn,
+        lastUpdated: now,
+      });
+    } else {
+      await ctx.db.insert("agentLeaderboard", {
+        agentId: agent._id,
+        portfolioValue,
+        holdingsCount: agentHoldings.length,
+        agentName: agent.name,
+        avatarEmoji: agent.avatarEmoji,
+        balance: updatedBalance,
+        isBuiltIn: agent.isBuiltIn,
+        lastUpdated: now,
+      });
     }
 
     // Schedule stats increment

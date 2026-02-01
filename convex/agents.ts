@@ -1,5 +1,6 @@
 import { v } from "convex/values";
 import { internalQuery, mutation, query } from "./_generated/server";
+import { internal } from "./_generated/api";
 
 // Get all agents (sanitized - no API keys exposed)
 export const getAllAgents = query({
@@ -120,6 +121,21 @@ export const registerExternalAgent = mutation({
       webhookUrl: args.webhookUrl,
       lastActiveAt: Date.now(),
     });
+
+    // Initialize leaderboard entry for the new agent
+    await ctx.db.insert("agentLeaderboard", {
+      agentId,
+      portfolioValue: 10000,
+      holdingsCount: 0,
+      agentName: args.name.slice(0, 50),
+      avatarEmoji: args.avatarEmoji ?? "🤖",
+      balance: 10000,
+      isBuiltIn: false,
+      lastUpdated: Date.now(),
+    });
+
+    // Schedule stats increment
+    await ctx.scheduler.runAfter(0, internal.stats.incrementAgentCount, {});
 
     return { agentId, apiKey };
   },

@@ -1,5 +1,22 @@
 import { internalMutation, query } from "./_generated/server";
 
+async function getOrCreateStats(ctx: { db: any }) {
+  const existing = await ctx.db.query("platformStats").first();
+  if (existing) {
+    return existing;
+  }
+
+  const statsId = await ctx.db.insert("platformStats", {
+    totalTrades: 0,
+    totalProfiles: 0,
+    totalAgents: 0,
+    tradesLastHour: 0,
+    lastUpdated: Date.now(),
+  });
+
+  return await ctx.db.get(statsId);
+}
+
 // Get precomputed platform statistics - O(1) read
 export const getPlatformStats = query({
   args: {},
@@ -25,47 +42,62 @@ export const getPlatformStats = query({
   },
 });
 
-// Refresh platform statistics - called by cron every 60 seconds
-export const refreshStats = internalMutation({
+// Refresh last-hour trade count from minute buckets
+export const refreshTradesLastHour = internalMutation({
   args: {},
   handler: async (ctx) => {
     const now = Date.now();
     const hourAgo = now - 60 * 60 * 1000;
+    const hourAgoMinute = Math.floor(hourAgo / 60000) * 60000;
 
-    // Count totals
-    const trades = await ctx.db.query("trades").collect();
-    const profiles = await ctx.db.query("profiles").collect();
-    const agents = await ctx.db.query("agents").collect();
+    const buckets = await ctx.db
+      .query("tradeBuckets")
+      .withIndex("by_minute", (q) => q.gte("minute", hourAgoMinute))
+      .collect();
 
-    const tradesLastHour = trades.filter((t) => t.createdAt > hourAgo).length;
+    let tradesLastHour = buckets.reduce(
+      (sum: number, bucket: { count: number }) => sum + bucket.count,
+      0,
+    );
 
-    // Get or create stats document
-    const existingStats = await ctx.db.query("platformStats").first();
+    // If buckets are empty (e.g., after deploy), backfill from recent trades
+    if (buckets.length === 0) {
+      const recentTrades = await ctx.db
+        .query("trades")
+        .withIndex("by_created", (q) => q.gte("createdAt", hourAgo))
+        .collect();
 
-    if (existingStats) {
-      await ctx.db.patch(existingStats._id, {
-        totalTrades: trades.length,
-        totalProfiles: profiles.length,
-        totalAgents: agents.length,
-        tradesLastHour,
-        lastUpdated: now,
-      });
-    } else {
-      await ctx.db.insert("platformStats", {
-        totalTrades: trades.length,
-        totalProfiles: profiles.length,
-        totalAgents: agents.length,
-        tradesLastHour,
-        lastUpdated: now,
-      });
+      const bucketCounts = new Map<number, number>();
+      for (const trade of recentTrades) {
+        const minute = Math.floor(trade.createdAt / 60000) * 60000;
+        bucketCounts.set(minute, (bucketCounts.get(minute) ?? 0) + 1);
+      }
+
+      for (const [minute, count] of bucketCounts.entries()) {
+        await ctx.db.insert("tradeBuckets", { minute, count });
+      }
+
+      tradesLastHour = recentTrades.length;
     }
 
-    return {
-      totalTrades: trades.length,
-      totalProfiles: profiles.length,
-      totalAgents: agents.length,
+    const stats = await getOrCreateStats(ctx);
+    await ctx.db.patch(stats._id, {
       tradesLastHour,
-    };
+      lastUpdated: now,
+    });
+
+    // Cleanup buckets older than 48 hours (bounded)
+    const staleBefore = hourAgoMinute - 48 * 60 * 60 * 1000;
+    const staleBuckets = await ctx.db
+      .query("tradeBuckets")
+      .withIndex("by_minute", (q) => q.lt("minute", staleBefore))
+      .take(100);
+
+    for (const bucket of staleBuckets) {
+      await ctx.db.delete(bucket._id);
+    }
+
+    return { tradesLastHour };
   },
 });
 
@@ -73,13 +105,25 @@ export const refreshStats = internalMutation({
 export const incrementTradeCount = internalMutation({
   args: {},
   handler: async (ctx) => {
-    const stats = await ctx.db.query("platformStats").first();
-    if (stats) {
-      await ctx.db.patch(stats._id, {
-        totalTrades: stats.totalTrades + 1,
-        tradesLastHour: stats.tradesLastHour + 1,
-        lastUpdated: Date.now(),
-      });
+    const now = Date.now();
+    const stats = await getOrCreateStats(ctx);
+
+    await ctx.db.patch(stats._id, {
+      totalTrades: stats.totalTrades + 1,
+      tradesLastHour: stats.tradesLastHour + 1,
+      lastUpdated: now,
+    });
+
+    const minute = Math.floor(now / 60000) * 60000;
+    const bucket = await ctx.db
+      .query("tradeBuckets")
+      .withIndex("by_minute", (q) => q.eq("minute", minute))
+      .first();
+
+    if (bucket) {
+      await ctx.db.patch(bucket._id, { count: bucket.count + 1 });
+    } else {
+      await ctx.db.insert("tradeBuckets", { minute, count: 1 });
     }
   },
 });
@@ -88,13 +132,11 @@ export const incrementTradeCount = internalMutation({
 export const incrementProfileCount = internalMutation({
   args: {},
   handler: async (ctx) => {
-    const stats = await ctx.db.query("platformStats").first();
-    if (stats) {
-      await ctx.db.patch(stats._id, {
-        totalProfiles: stats.totalProfiles + 1,
-        lastUpdated: Date.now(),
-      });
-    }
+    const stats = await getOrCreateStats(ctx);
+    await ctx.db.patch(stats._id, {
+      totalProfiles: stats.totalProfiles + 1,
+      lastUpdated: Date.now(),
+    });
   },
 });
 
@@ -102,12 +144,10 @@ export const incrementProfileCount = internalMutation({
 export const incrementAgentCount = internalMutation({
   args: {},
   handler: async (ctx) => {
-    const stats = await ctx.db.query("platformStats").first();
-    if (stats) {
-      await ctx.db.patch(stats._id, {
-        totalAgents: stats.totalAgents + 1,
-        lastUpdated: Date.now(),
-      });
-    }
+    const stats = await getOrCreateStats(ctx);
+    await ctx.db.patch(stats._id, {
+      totalAgents: stats.totalAgents + 1,
+      lastUpdated: Date.now(),
+    });
   },
 });

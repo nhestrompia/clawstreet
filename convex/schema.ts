@@ -89,6 +89,12 @@ export default defineSchema({
     timestamp: v.number(),
   }).index("by_timestamp", ["timestamp"]),
 
+  // Trade counts per minute (used for last-hour stats)
+  tradeBuckets: defineTable({
+    minute: v.number(),
+    count: v.number(),
+  }).index("by_minute", ["minute"]),
+
   // Precomputed platform statistics (updated by cron)
   platformStats: defineTable({
     totalTrades: v.number(),

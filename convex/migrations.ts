@@ -162,6 +162,18 @@ export const initializePlatformStats = internalMutation({
     const hourAgo = Date.now() - 60 * 60 * 1000;
     const tradesLastHour = trades.filter((t) => t.createdAt > hourAgo).length;
 
+    // Initialize trade buckets for the last hour
+    const bucketCounts = new Map<number, number>();
+    for (const trade of trades) {
+      if (trade.createdAt <= hourAgo) continue;
+      const minute = Math.floor(trade.createdAt / 60000) * 60000;
+      bucketCounts.set(minute, (bucketCounts.get(minute) ?? 0) + 1);
+    }
+
+    for (const [minute, count] of bucketCounts.entries()) {
+      await ctx.db.insert("tradeBuckets", { minute, count });
+    }
+
     const statsId = await ctx.db.insert("platformStats", {
       totalTrades: trades.length,
       totalProfiles: profiles.length,

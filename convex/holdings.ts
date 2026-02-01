@@ -1,5 +1,5 @@
 import { v } from "convex/values";
-import { internalMutation, query } from "./_generated/server";
+import { internalMutation, internalQuery, query } from "./_generated/server";
 
 // Get all holdings for an agent (their portfolio)
 export const getAgentHoldings = query({
@@ -49,6 +49,19 @@ export const getProfileHolders = query({
     );
 
     return enrichedHoldings.filter((h) => h.shares > 0);
+  },
+});
+
+// Get a specific holding for an agent and profile (internal use)
+export const getHoldingForAgentProfile = internalQuery({
+  args: { agentId: v.id("agents"), profileId: v.id("profiles") },
+  handler: async (ctx, args) => {
+    return await ctx.db
+      .query("agentHoldings")
+      .withIndex("by_agent_profile", (q) =>
+        q.eq("agentId", args.agentId).eq("profileId", args.profileId),
+      )
+      .first();
   },
 });
 

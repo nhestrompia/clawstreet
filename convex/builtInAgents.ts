@@ -15,7 +15,9 @@ export const runTradingRound = internalAction({
     }
 
     // Get active profiles to trade
-    const profiles = await ctx.runQuery(api.profiles.getActiveProfiles, {});
+    const profiles = await ctx.runQuery(api.profiles.getActiveProfiles, {
+      limit: 200,
+    });
     if (profiles.length === 0) {
       console.log("No profiles available for trading.");
       return { trades: 0 };
@@ -74,11 +76,12 @@ export const runTradingRound = internalAction({
 
           // Check if agent has shares to sell
           if (decision.action === "SELL") {
-            const holdings = await ctx.runQuery(api.agents.getAgentHoldings, {
-              agentId: agent._id,
-            });
-            const profileHolding = holdings.find(
-              (h) => h.profileId === profile._id
+            const profileHolding = await ctx.runQuery(
+              internal.holdings.getHoldingForAgentProfile,
+              {
+                agentId: agent._id,
+                profileId: profile._id,
+              },
             );
             if (!profileHolding || profileHolding.shares < decision.size) {
               // Adjust size to available shares or skip

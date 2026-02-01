@@ -635,10 +635,13 @@ http.route({
 
       // Check if agent has shares to SELL
       if (body.action === "SELL") {
-        const holdings = await ctx.runQuery(api.agents.getAgentHoldings, {
-          agentId: agent._id,
-        });
-        const holding = holdings.find((h) => h.profileId === body.profileId);
+        const holding = await ctx.runQuery(
+          internal.holdings.getHoldingForAgentProfile,
+          {
+            agentId: agent._id,
+            profileId: body.profileId,
+          },
+        );
         if (!holding || holding.shares < size) {
           return new Response(
             JSON.stringify({
