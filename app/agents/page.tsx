@@ -27,7 +27,7 @@ export default function AgentsPage() {
 }
 
 function AgentsList() {
-  const agents = useQuery(api.agents.getAllAgents);
+  const agents = useQuery(api.agents.getAllAgents, {});
 
   if (!agents) return <LoadingState />;
 

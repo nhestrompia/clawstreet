@@ -15,7 +15,7 @@ export const runTradingRound = internalAction({
     }
 
     // Get active profiles to trade
-    const profiles = await ctx.runQuery(api.profiles.getActiveProfiles);
+    const profiles = await ctx.runQuery(api.profiles.getActiveProfiles, {});
     if (profiles.length === 0) {
       console.log("No profiles available for trading.");
       return { trades: 0 };

@@ -6,6 +6,7 @@ export default defineSchema({
   profiles: defineTable({
     // Profile content
     name: v.optional(v.string()), // Bond name - will be required after migration
+    nameLower: v.optional(v.string()), // Lowercase name for search optimization
     bio: v.optional(v.string()),
     tweets: v.array(v.string()), // For users: tweet URLs (https://x.com/...). For agents: self-descriptions/thoughts
 
@@ -27,7 +28,8 @@ export default defineSchema({
     .index("by_price", ["currentPrice"])
     .index("by_created", ["createdAt"])
     .index("by_creator_type", ["creatorType"])
-    .index("by_creator_agent", ["creatorAgentId"]),
+    .index("by_creator_agent", ["creatorAgentId"])
+    .index("by_name_lower", ["nameLower"]),
 
   // Agents - built-in + external OpenClaw agents
   agents: defineTable({
@@ -86,4 +88,27 @@ export default defineSchema({
     priceChange24h: v.number(),
     timestamp: v.number(),
   }).index("by_timestamp", ["timestamp"]),
+
+  // Precomputed platform statistics (updated by cron)
+  platformStats: defineTable({
+    totalTrades: v.number(),
+    totalProfiles: v.number(),
+    totalAgents: v.number(),
+    tradesLastHour: v.number(),
+    lastUpdated: v.number(),
+  }),
+
+  // Precomputed agent leaderboard (updated by cron)
+  agentLeaderboard: defineTable({
+    agentId: v.id("agents"),
+    portfolioValue: v.number(),
+    holdingsCount: v.number(),
+    agentName: v.string(),
+    avatarEmoji: v.string(),
+    balance: v.number(),
+    isBuiltIn: v.boolean(),
+    lastUpdated: v.number(),
+  })
+    .index("by_portfolio_value", ["portfolioValue"])
+    .index("by_agent", ["agentId"]),
 });

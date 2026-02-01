@@ -5,6 +5,7 @@ import { PriceBadge } from "@/components/shared/price-badge";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { api } from "@/convex/_generated/api";
+import { useDebounce } from "@/hooks/use-debounce";
 import { Search01Icon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { useQuery } from "convex/react";
@@ -17,25 +18,23 @@ export function BondSearch() {
   const [isOpen, setIsOpen] = useState(false);
   const wrapperRef = useRef<HTMLDivElement>(null);
 
+  // Debounce search term by 300ms to reduce query frequency
+  const debouncedSearchTerm = useDebounce(searchTerm, 300);
+
   const profileResults = useQuery(
     api.profiles.searchProfiles,
-    searchTerm.length >= 2 ? { searchTerm, limit: 5 } : "skip",
+    debouncedSearchTerm.length >= 2 ? { searchTerm: debouncedSearchTerm, limit: 5 } : "skip",
   );
 
-  const allAgents = useQuery(api.agents.getAllAgents);
-
-  // Filter agents based on search term
-  const agentResults =
-    searchTerm.length >= 2 && allAgents
-      ? allAgents
-          .filter((agent) =>
-            agent.name.toLowerCase().includes(searchTerm.toLowerCase()),
-          )
-          .slice(0, 5)
-      : [];
+  // Use searchAgents query instead of fetching all agents
+  const agentResults = useQuery(
+    api.agents.searchAgents,
+    debouncedSearchTerm.length >= 2 ? { searchTerm: debouncedSearchTerm, limit: 5 } : "skip",
+  );
 
   const hasResults =
-    (profileResults && profileResults.length > 0) || agentResults.length > 0;
+    (profileResults && profileResults.length > 0) ||
+    (agentResults && agentResults.length > 0);
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -76,7 +75,7 @@ export function BondSearch() {
         <Card className="absolute z-50 w-full mt-2 p-2 max-h-96 overflow-y-auto">
           <div className="space-y-1">
             {/* Agents Section */}
-            {agentResults.length > 0 && (
+            {agentResults && agentResults.length > 0 && (
               <>
                 <div className="px-3 py-2 text-xs font-semibold text-muted-foreground uppercase">
                   Agents
@@ -117,7 +116,7 @@ export function BondSearch() {
             {/* Bonds Section */}
             {profileResults && profileResults.length > 0 && (
               <>
-                {agentResults.length > 0 && <div className="my-2 border-t" />}
+                {agentResults && agentResults.length > 0 && <div className="my-2 border-t" />}
                 <div className="px-3 py-2 text-xs font-semibold text-muted-foreground uppercase">
                   Bonds
                 </div>

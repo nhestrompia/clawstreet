@@ -1,4 +1,5 @@
 import { v } from "convex/values";
+import { internal } from "./_generated/api";
 import { internalMutation, query } from "./_generated/server";
 import { calculateNewPrice } from "./priceEngine";
 
@@ -211,6 +212,9 @@ export const recordTrade = internalMutation({
         });
       }
     }
+
+    // Schedule stats increment
+    await ctx.scheduler.runAfter(0, internal.stats.incrementTradeCount, {});
 
     return { tradeId, newPrice, priceChange };
   },

@@ -1,4 +1,5 @@
 import { v } from "convex/values";
+import { internal } from "./_generated/api";
 import { internalMutation, mutation, query } from "./_generated/server";
 import { sanitizeContent, validateBio, validateTweet } from "./contentFilter";
 
@@ -136,6 +137,7 @@ export const createProfile = mutation({
 
     const profileId = await ctx.db.insert("profiles", {
       name,
+      nameLower: name.toLowerCase(),
       bio,
       tweets,
       creatorType: "user",
@@ -153,6 +155,9 @@ export const createProfile = mutation({
       timestamp: now,
     });
 
+    // Schedule stats increment
+    await ctx.scheduler.runAfter(0, internal.stats.incrementProfileCount, {});
+
     return { profileId, confidenceLevel };
   },
 });
@@ -164,7 +169,7 @@ export const getProfile = query({
     return await ctx.db.get(args.profileId);
   },
 });
-// Search profiles by name
+// Search profiles by name using index for prefix search
 export const searchProfiles = query({
   args: {
     searchTerm: v.string(),
@@ -174,25 +179,59 @@ export const searchProfiles = query({
     const limit = args.limit ?? 10;
     const searchLower = args.searchTerm.toLowerCase();
 
-    // Get all profiles and filter by name
-    const allProfiles = await ctx.db.query("profiles").collect();
+    // Use index for prefix search - get candidates starting with the search term
+    const prefixMatches = await ctx.db
+      .query("profiles")
+      .withIndex("by_name_lower", (q) =>
+        q.gte("nameLower", searchLower).lt("nameLower", searchLower + "\uffff"),
+      )
+      .take(limit * 3); // Get extra for filtering
 
-    const matchingProfiles = allProfiles
-      .filter((profile) => profile.name?.toLowerCase().includes(searchLower))
+    // Also get some recent profiles to check for contains matches (limited scan)
+    const recentProfiles = await ctx.db
+      .query("profiles")
+      .withIndex("by_created")
+      .order("desc")
+      .take(100);
+
+    // Combine and deduplicate
+    const seen = new Set<string>();
+    const candidates: typeof prefixMatches = [];
+
+    for (const profile of prefixMatches) {
+      if (!seen.has(profile._id)) {
+        seen.add(profile._id);
+        candidates.push(profile);
+      }
+    }
+
+    // Add contains matches from recent profiles
+    for (const profile of recentProfiles) {
+      if (
+        !seen.has(profile._id) &&
+        profile.nameLower?.includes(searchLower)
+      ) {
+        seen.add(profile._id);
+        candidates.push(profile);
+      }
+    }
+
+    // Sort and limit results
+    const matchingProfiles = candidates
+      .filter((profile) => profile.nameLower?.includes(searchLower))
       .sort((a, b) => {
-        // Prioritize exact matches and closer matches
-        const aName = a.name?.toLowerCase() || "";
-        const bName = b.name?.toLowerCase() || "";
+        const aName = a.nameLower || "";
+        const bName = b.nameLower || "";
         const aExact = aName === searchLower ? -1 : 0;
         const bExact = bName === searchLower ? -1 : 0;
         if (aExact !== bExact) return aExact - bExact;
 
-        // Then by position of match
-        const aIndex = aName.indexOf(searchLower);
-        const bIndex = bName.indexOf(searchLower);
-        if (aIndex !== bIndex) return aIndex - bIndex;
+        // Prioritize prefix matches
+        const aPrefix = aName.startsWith(searchLower) ? -1 : 0;
+        const bPrefix = bName.startsWith(searchLower) ? -1 : 0;
+        if (aPrefix !== bPrefix) return aPrefix - bPrefix;
 
-        // Finally by price (higher first)
+        // Then by price (higher first)
         return b.currentPrice - a.currentPrice;
       })
       .slice(0, limit);
@@ -250,18 +289,25 @@ export const getPriceHistory = query({
   },
 });
 
-// Get active profiles for trading (profiles created in last 7 days or with recent trades)
+// Get active profiles for trading (profiles created in last 7 days with limit)
 export const getActiveProfiles = query({
-  args: {},
-  handler: async (ctx) => {
+  args: { limit: v.optional(v.number()) },
+  handler: async (ctx, args) => {
+    const limit = args.limit ?? 50;
+
+    // Use index with limit for efficient query
+    const recentProfiles = await ctx.db
+      .query("profiles")
+      .withIndex("by_created")
+      .order("desc")
+      .take(limit);
+
+    // Filter to last week if we have enough profiles
     const weekAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
-    const profiles = await ctx.db.query("profiles").collect();
+    const activeProfiles = recentProfiles.filter((p) => p.createdAt > weekAgo);
 
-    // Return profiles created in last week or all if few exist
-    const activeProfiles = profiles.filter((p) => p.createdAt > weekAgo);
-
-    // If no recent profiles, return all profiles
-    return activeProfiles.length > 0 ? activeProfiles : profiles;
+    // Return active profiles or all recent if none in last week
+    return activeProfiles.length > 0 ? activeProfiles : recentProfiles;
   },
 });
 
@@ -387,6 +433,7 @@ export const createAgentIPO = internalMutation({
 
     const profileId = await ctx.db.insert("profiles", {
       name,
+      nameLower: name.toLowerCase(),
       bio,
       tweets: processedDescriptions, // Self-descriptions stored as "tweets"
       creatorType: "agent",
@@ -404,6 +451,9 @@ export const createAgentIPO = internalMutation({
       price: 10.0,
       timestamp: now,
     });
+
+    // Schedule stats increment
+    await ctx.scheduler.runAfter(0, internal.stats.incrementProfileCount, {});
 
     return { profileId, confidenceLevel };
   },

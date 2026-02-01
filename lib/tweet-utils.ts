@@ -82,3 +82,12 @@ export function validateTweetUrls(urls: string[]): {
 export function formatTweetUrl(tweetId: string): string {
   return `https://x.com/i/status/${tweetId}`;
 }
+
+/**
+ * Extract tweet ID from a stored tweet (could be URL or ID)
+ * Used for displaying tweets from database
+ */
+export function getTweetIdForDisplay(tweetUrlOrId: string): string {
+  const extracted = extractTweetId(tweetUrlOrId);
+  return extracted || tweetUrlOrId; // Fallback to original if extraction fails
+}

@@ -7,7 +7,7 @@ import { AgentAvatar } from "./agent-avatar";
 import { AgentHoverWrapper } from "./agent-hover-wrapper";
 
 export function TopTraders() {
-  const topTraders = useQuery(api.agents.getAgentLeaderboard, { limit: 10 });
+  const topTraders = useQuery(api.leaderboard.getAgentLeaderboard, { limit: 10 });
 
   if (!topTraders) {
     return (

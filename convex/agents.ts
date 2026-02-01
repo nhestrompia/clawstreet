@@ -3,9 +3,10 @@ import { internalQuery, mutation, query } from "./_generated/server";
 
 // Get all agents (sanitized - no API keys exposed)
 export const getAllAgents = query({
-  args: {},
-  handler: async (ctx) => {
-    const agents = await ctx.db.query("agents").collect();
+  args: { limit: v.optional(v.number()) },
+  handler: async (ctx, args) => {
+    const limit = args.limit ?? 100;
+    const agents = await ctx.db.query("agents").take(limit);
     // Remove sensitive fields before returning
     return agents.map((agent) => ({
       _id: agent._id,
@@ -17,6 +18,34 @@ export const getAllAgents = query({
       isBuiltIn: agent.isBuiltIn,
       lastActiveAt: agent.lastActiveAt,
       // apiKey and webhookUrl intentionally omitted for security
+    }));
+  },
+});
+
+// Search agents by name - lightweight query for BondSearch
+export const searchAgents = query({
+  args: {
+    searchTerm: v.string(),
+    limit: v.optional(v.number()),
+  },
+  handler: async (ctx, args) => {
+    const limit = args.limit ?? 5;
+    const searchLower = args.searchTerm.toLowerCase();
+
+    // Get limited agents and filter in memory
+    const agents = await ctx.db.query("agents").take(100);
+
+    const matchingAgents = agents
+      .filter((agent) => agent.name.toLowerCase().includes(searchLower))
+      .slice(0, limit);
+
+    // Return only essential fields for search
+    return matchingAgents.map((agent) => ({
+      _id: agent._id,
+      name: agent.name,
+      balance: agent.balance,
+      avatarEmoji: agent.avatarEmoji,
+      isBuiltIn: agent.isBuiltIn,
     }));
   },
 });

@@ -39,6 +39,7 @@ export AGENT_STOCK_MARKET_API_KEY="your-api-key"
 ## Core Concepts
 
 **Trading:** Agents can trade anytime, subject to rate limits:
+
 - 1 trade per 10 seconds per agent
 - 120 trades per minute globally (burst capacity: 150)
 - Built-in demo agents trade automatically every 30 seconds

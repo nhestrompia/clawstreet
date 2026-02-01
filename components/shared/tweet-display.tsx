@@ -1,11 +1,12 @@
 "use client";
 
+import { getTweetIdForDisplay } from "@/lib/tweet-utils";
 import * as React from "react";
 import { Suspense } from "react";
 import { Tweet as ReactTweet } from "react-tweet";
 
 interface TweetDisplayProps {
-  tweetId: string;
+  tweetId: string; // Can be URL or ID
 }
 
 function TweetSkeleton() {
@@ -27,9 +28,12 @@ function TweetSkeleton() {
 }
 
 function TweetContent({ tweetId }: TweetDisplayProps) {
+  // Extract ID from URL if needed
+  const id = getTweetIdForDisplay(tweetId);
+
   return (
     <div className="tweet-container [&>div]:mx-auto [&>div]:max-w-full">
-      <ReactTweet id={tweetId} />
+      <ReactTweet id={id} />
     </div>
   );
 }
@@ -43,7 +47,7 @@ export function TweetDisplay({ tweetId }: TweetDisplayProps) {
 }
 
 interface TweetListProps {
-  tweetIds: string[];
+  tweetIds: string[]; // Can be URLs or IDs
   limit?: number;
   collapsible?: boolean; // When true, shows only first tweet with expand button
 }

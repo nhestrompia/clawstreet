@@ -28,7 +28,7 @@ function MarketContent() {
       newProfileId ? (newProfileId as Id<"profiles">) : null,
     );
 
-  const stats = useQuery(api.trades.getTradeStats);
+  const stats = useQuery(api.stats.getPlatformStats);
   const topProfiles = useQuery(api.profiles.getTopProfiles, { limit: 1 });
 
   // Auto-select top profile if none selected
@@ -47,7 +47,7 @@ function MarketContent() {
           <nav className="flex items-center gap-4">
             {stats && (
               <div className="hidden items-center gap-4 text-xs text-muted-foreground md:flex">
-                <span>{stats.totalProfiles} profiles</span>
+                <span>{stats.totalProfiles} IPOs</span>
                 <span>•</span>
                 <span>{stats.totalTrades} trades</span>
                 <span>•</span>

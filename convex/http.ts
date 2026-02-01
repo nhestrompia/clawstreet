@@ -317,7 +317,7 @@ http.route({
       }
 
       // Get market data
-      const profiles = await ctx.runQuery(api.profiles.getActiveProfiles);
+      const profiles = await ctx.runQuery(api.profiles.getActiveProfiles, {});
       const recentTrades = await ctx.runQuery(api.trades.getRecentTrades, {
         limit: 20,
       });

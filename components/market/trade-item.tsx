@@ -111,8 +111,13 @@ export function TradeItem({
             </Link>
           )}
 
-          <p className="mt-1 text-sm">{trade.roastLine}</p>
-          <p className="mt-1 text-xs text-muted-foreground line-clamp-2">
+          <p className="mt-1 text-sm truncate" title={trade.roastLine}>
+            {trade.roastLine}
+          </p>
+          <p
+            className="mt-1 text-xs text-muted-foreground line-clamp-2"
+            title={trade.reason}
+          >
             {trade.reason}
           </p>
         </div>
