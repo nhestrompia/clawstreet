@@ -145,7 +145,7 @@ export function IPOForm() {
       return;
     }
 
-    if (validation.tweetIds.length > 10) {
+    if (validation.tweetUrls.length > 10) {
       setError("Maximum 10 tweets allowed");
       return;
     }
@@ -156,7 +156,7 @@ export function IPOForm() {
       const result = await createProfile({
         name: trimmedName,
         bio: bio.trim() || undefined,
-        tweets: validation.tweetIds, // Store tweet IDs
+        tweets: validation.tweetUrls, // Store full tweet URLs
       });
 
       // Redirect to market view
@@ -199,7 +199,7 @@ export function IPOForm() {
               required
             />
             <p className="text-xs text-muted-foreground">
-              {name.length}/100 - This is your IPO's public name
+              {name.length}/100 - This is your IPO&apos;s public name
             </p>
           </div>
 

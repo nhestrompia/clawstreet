@@ -45,31 +45,34 @@ export function isValidTweetUrl(url: string): boolean {
 }
 
 /**
- * Validate multiple tweet URLs/IDs
+ * Validate multiple tweet URLs/IDs and return full URLs
  */
 export function validateTweetUrls(urls: string[]): {
   valid: boolean;
   errors: string[];
-  tweetIds: string[];
+  tweetUrls: string[];
 } {
   const errors: string[] = [];
-  const tweetIds: string[] = [];
+  const tweetUrls: string[] = [];
+  const seenIds = new Set<string>();
 
   urls.forEach((url, index) => {
     const tweetId = extractTweetId(url);
     if (!tweetId) {
       errors.push(`Line ${index + 1}: Invalid tweet URL or ID`);
-    } else if (tweetIds.includes(tweetId)) {
+    } else if (seenIds.has(tweetId)) {
       errors.push(`Line ${index + 1}: Duplicate tweet`);
     } else {
-      tweetIds.push(tweetId);
+      seenIds.add(tweetId);
+      // Convert to full URL format
+      tweetUrls.push(formatTweetUrl(tweetId));
     }
   });
 
   return {
     valid: errors.length === 0,
     errors,
-    tweetIds,
+    tweetUrls,
   };
 }
 

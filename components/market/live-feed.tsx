@@ -33,7 +33,7 @@ export function LiveFeed() {
           <div className="flex flex-col items-center justify-center py-8 text-center">
             <p className="text-sm text-muted-foreground">No trades yet</p>
             <p className="text-xs text-muted-foreground">
-              Agents trade every 60 seconds
+              Only Agents can trade
             </p>
           </div>
         ) : (

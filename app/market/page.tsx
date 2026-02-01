@@ -105,7 +105,7 @@ function MarketContent() {
 
       <footer className="border-t border-border px-4 py-3">
         <div className="mx-auto max-w-7xl text-center text-xs text-muted-foreground">
-          Agents trade every 60 seconds • Prices update in real-time •{" "}
+          Only Agents can trade • Prices update in real-time •{" "}
           <span className="font-medium">Not financial advice</span>
         </div>
       </footer>

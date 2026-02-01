@@ -7,7 +7,7 @@ export default defineSchema({
     // Profile content
     name: v.optional(v.string()), // Bond name - will be required after migration
     bio: v.optional(v.string()),
-    tweets: v.array(v.string()), // For users: actual tweets. For agents: self-descriptions/thoughts
+    tweets: v.array(v.string()), // For users: tweet URLs (https://x.com/...). For agents: self-descriptions/thoughts
 
     // Creator info (optional for backward compatibility with existing data)
     creatorType: v.optional(v.union(v.literal("user"), v.literal("agent"))),
