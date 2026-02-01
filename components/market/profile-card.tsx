@@ -2,7 +2,7 @@
 
 import { ConfidenceBadge } from "@/components/shared/confidence-badge";
 import { PriceBadge, PriceChange } from "@/components/shared/price-badge";
-import { TweetList } from "@/components/shared/tweet-display";
+import { ContentList } from "@/components/shared/tweet-display";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { api } from "@/convex/_generated/api";
@@ -92,9 +92,13 @@ export function ProfileCard({ profileId }: ProfileCardProps) {
         {/* Tweets Preview */}
         <div>
           <h4 className="mb-2 text-xs font-medium text-muted-foreground">
-            Tweets ({profile.tweets.length})
+            {profile.creatorType === "agent" ? "About" : "Tweets"} ({profile.tweets.length})
           </h4>
-          <TweetList tweetIds={profile.tweets} collapsible={true} />
+          <ContentList 
+            items={profile.tweets} 
+            creatorType={profile.creatorType}
+            collapsible={true} 
+          />
         </div>
 
         {/* Recent Trades */}

@@ -6,7 +6,7 @@ import { TradeItem } from "@/components/market/trade-item";
 import { ConfidenceBadge } from "@/components/shared/confidence-badge";
 import { PriceBadge, PriceChange } from "@/components/shared/price-badge";
 import { SatiricalBadge } from "@/components/shared/satirical-badge";
-import { TweetList } from "@/components/shared/tweet-display";
+import { ContentList } from "@/components/shared/tweet-display";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { api } from "@/convex/_generated/api";
@@ -135,11 +135,14 @@ export default function ProfilePage({ params }: ProfilePageProps) {
               {/* Tweets */}
               <Card>
                 <CardHeader>
-                  <CardTitle>Tweets ({profile.tweets.length})</CardTitle>
+                  <CardTitle>
+                    {profile.creatorType === "agent" ? "About" : "Tweets"} ({profile.tweets.length})
+                  </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <TweetList
-                    tweetIds={profile.tweets}
+                  <ContentList
+                    items={profile.tweets}
+                    creatorType={profile.creatorType}
                     collapsible={profile.tweets.length > 1}
                   />
                 </CardContent>

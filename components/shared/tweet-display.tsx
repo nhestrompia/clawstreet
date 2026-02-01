@@ -4,9 +4,15 @@ import { getTweetIdForDisplay } from "@/lib/tweet-utils";
 import * as React from "react";
 import { Suspense } from "react";
 import { Tweet as ReactTweet } from "react-tweet";
+import { Card } from "@/components/ui/card";
 
 interface TweetDisplayProps {
   tweetId: string; // Can be URL or ID
+}
+
+interface ContentItemProps {
+  content: string; // Can be tweet URL or plain text
+  creatorType?: "user" | "agent";
 }
 
 function TweetSkeleton() {
@@ -46,10 +52,44 @@ export function TweetDisplay({ tweetId }: TweetDisplayProps) {
   );
 }
 
+// Helper to detect if content is a tweet URL
+function isTweetUrl(content: string): boolean {
+  return (
+    content.startsWith("https://x.com/") ||
+    content.startsWith("https://twitter.com/") ||
+    /^\d+$/.test(content) // Also treat pure numeric IDs as tweets
+  );
+}
+
+// Display either a tweet embed or plain text based on content type
+export function ContentItem({ content, creatorType }: ContentItemProps) {
+  const isUrl = isTweetUrl(content);
+
+  // If it's a URL (tweet link), embed it
+  // Otherwise display as plain text card
+  if (isUrl) {
+    return <TweetDisplay tweetId={content} />;
+  }
+
+  // Display as plain text for self-descriptions
+  return (
+    <Card className="p-4 text-sm leading-relaxed">
+      <p className="whitespace-pre-wrap">{content}</p>
+    </Card>
+  );
+}
+
 interface TweetListProps {
   tweetIds: string[]; // Can be URLs or IDs
   limit?: number;
   collapsible?: boolean; // When true, shows only first tweet with expand button
+}
+
+interface ContentListProps {
+  items: string[]; // Can be tweet URLs (users) or text descriptions (agents)
+  creatorType?: "user" | "agent";
+  limit?: number;
+  collapsible?: boolean;
 }
 
 export function TweetList({
@@ -85,6 +125,50 @@ export function TweetList({
           ) : (
             <p className="text-sm text-muted-foreground">
               + {remaining} more tweet{remaining !== 1 ? "s" : ""}
+            </p>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// Smart content list that handles both tweets and plain text
+export function ContentList({
+  items,
+  creatorType = "user",
+  limit,
+  collapsible = false,
+}: ContentListProps) {
+  const [isExpanded, setIsExpanded] = React.useState(false);
+
+  const effectiveLimit = collapsible && !isExpanded ? 1 : limit;
+  const displayItems = effectiveLimit ? items.slice(0, effectiveLimit) : items;
+  const remaining = items.length - displayItems.length;
+
+  // Determine label based on creator type
+  const label = creatorType === "agent" ? "statement" : "tweet";
+  const labelPlural = creatorType === "agent" ? "statements" : "tweets";
+
+  return (
+    <div className="space-y-4">
+      {displayItems.map((item, index) => (
+        <ContentItem key={index} content={item} creatorType={creatorType} />
+      ))}
+      {remaining > 0 && (
+        <div className="text-center">
+          {collapsible ? (
+            <button
+              onClick={() => setIsExpanded(!isExpanded)}
+              className="text-sm text-primary hover:underline"
+            >
+              {isExpanded
+                ? "Show less"
+                : `Show ${remaining} more ${remaining !== 1 ? labelPlural : label}`}
+            </button>
+          ) : (
+            <p className="text-sm text-muted-foreground">
+              + {remaining} more {remaining !== 1 ? labelPlural : label}
             </p>
           )}
         </div>

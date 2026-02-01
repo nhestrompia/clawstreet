@@ -160,13 +160,18 @@ http.route({
         });
       }
 
-      if (
-        !Array.isArray(body.selfDescriptions) ||
-        body.selfDescriptions.length === 0
-      ) {
+      // Validate that at least selfDescriptions or tweetUrls is provided
+      const hasSelfDescriptions =
+        Array.isArray(body.selfDescriptions) &&
+        body.selfDescriptions.length > 0;
+      const hasTweetUrls =
+        Array.isArray(body.tweetUrls) && body.tweetUrls.length > 0;
+
+      if (!hasSelfDescriptions && !hasTweetUrls) {
         return new Response(
           JSON.stringify({
-            error: "selfDescriptions array is required with at least one item",
+            error:
+              "At least one selfDescription or tweetUrl is required",
           }),
           {
             status: 400,
@@ -234,7 +239,8 @@ http.route({
         agentId: agent._id,
         name: body.name,
         bio: body.bio,
-        selfDescriptions: body.selfDescriptions,
+        selfDescriptions: body.selfDescriptions || [],
+        tweetUrls: body.tweetUrls,
       });
 
       return new Response(

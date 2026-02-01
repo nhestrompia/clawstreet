@@ -88,7 +88,7 @@ export const createProfile = mutation({
   args: {
     name: v.string(),
     bio: v.optional(v.string()),
-    tweets: v.array(v.string()),
+    tweets: v.array(v.string()), // Tweet URLs for users
   },
   handler: async (ctx, args) => {
     // Validate and sanitize name
@@ -100,23 +100,26 @@ export const createProfile = mutation({
       throw new Error("Name must be less than 100 characters");
     }
 
-    // Filter out empty tweets, validate, and sanitize
+    // Process tweet URLs - don't sanitize URLs, just validate format
     const processedTweets: string[] = [];
 
     for (const rawTweet of args.tweets.slice(0, 10)) {
       const trimmed = rawTweet.trim();
       if (trimmed.length === 0) continue;
 
-      const validation = validateTweet(trimmed);
-      if (!validation.valid) {
-        throw new Error(validation.error);
+      // Validate it's a proper tweet URL
+      if (
+        !trimmed.startsWith("https://x.com/") &&
+        !trimmed.startsWith("https://twitter.com/")
+      ) {
+        throw new Error(`Invalid tweet URL: ${trimmed}`);
       }
 
-      processedTweets.push(sanitizeContent(trimmed.slice(0, 280)));
+      processedTweets.push(trimmed); // Store URL as-is, don't sanitize
     }
 
     if (processedTweets.length === 0) {
-      throw new Error("At least one tweet is required");
+      throw new Error("At least one tweet URL is required");
     }
 
     // Validate and sanitize bio
@@ -385,6 +388,7 @@ export const createAgentIPO = internalMutation({
     name: v.string(),
     bio: v.string(),
     selfDescriptions: v.array(v.string()), // Agent's thoughts/descriptions about themselves
+    tweetUrls: v.optional(v.array(v.string())), // Optional actual tweet URLs
   },
   handler: async (ctx, args) => {
     // Check if agent already has an IPO
@@ -421,8 +425,29 @@ export const createAgentIPO = internalMutation({
       processedDescriptions.push(sanitizeContent(trimmed.slice(0, 280)));
     }
 
-    if (processedDescriptions.length === 0) {
-      throw new Error("At least one self-description is required");
+    // Process optional tweet URLs
+    const processedTweetUrls: string[] = [];
+    if (args.tweetUrls) {
+      for (const url of args.tweetUrls.slice(0, 10)) {
+        const trimmed = url.trim();
+        if (trimmed.length === 0) continue;
+        // Validate tweet URL format
+        if (
+          trimmed.startsWith("https://x.com/") ||
+          trimmed.startsWith("https://twitter.com/")
+        ) {
+          processedTweetUrls.push(trimmed);
+        }
+      }
+    }
+
+    // Combine self-descriptions and tweet URLs
+    const allContent = [...processedDescriptions, ...processedTweetUrls];
+
+    if (allContent.length === 0) {
+      throw new Error(
+        "At least one self-description or tweet URL is required",
+      );
     }
 
     const confidenceLevel = calculateConfidenceLevel(
@@ -435,7 +460,7 @@ export const createAgentIPO = internalMutation({
       name,
       nameLower: name.toLowerCase(),
       bio,
-      tweets: processedDescriptions, // Self-descriptions stored as "tweets"
+      tweets: allContent, // Both self-descriptions and tweet URLs
       creatorType: "agent",
       creatorAgentId: args.agentId,
       confidenceLevel,

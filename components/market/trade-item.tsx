@@ -67,12 +67,21 @@ export function TradeItem({
         </span>
         {trade.shares && (
           <span className="text-muted-foreground">
-            {trade.shares.toLocaleString()} sh
+            {trade.shares.toLocaleString()} shares
           </span>
         )}
-        <span className="flex-1 truncate text-muted-foreground">
-          {trade.roastLine}
-        </span>
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger>
+              <p className="mt-1 text-sm lg:max-w-80 truncate cursor-help">
+                {trade.roastLine}
+              </p>
+            </TooltipTrigger>
+            <TooltipContent className="max-w-md">
+              <p>{trade.roastLine}</p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
         <PriceChange change={trade.priceChange} />
       </div>
     );
@@ -120,7 +129,7 @@ export function TradeItem({
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger>
-                <p className="mt-1 text-sm truncate cursor-help">
+                <p className="mt-1 text-sm max-w-64 truncate cursor-help">
                   {trade.roastLine}
                 </p>
               </TooltipTrigger>

@@ -8,4 +8,4 @@ export {
 export { Navigation } from "./navigation";
 export { PriceBadge, PriceChange } from "./price-badge";
 export { SatiricalBadge } from "./satirical-badge";
-export { TweetDisplay, TweetList } from "./tweet-display";
+export { TweetDisplay, TweetList, ContentList, ContentItem } from "./tweet-display";
